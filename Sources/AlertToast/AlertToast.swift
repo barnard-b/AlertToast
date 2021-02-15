@@ -159,19 +159,20 @@ public struct AlertToastModifier: ViewModifier{
                 ZStack{
                     if show{
                         alert()
-                            .onAppear {
-                                DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
-                                    withAnimation(.spring()){
-                                        show = false
-                                    }
-                                }
-                            }
                             .onTapGesture {
                                 withAnimation(.spring()){
                                     show = false
                                 }
                             }
                             .transition(AnyTransition.scale(scale: 0.8).combined(with: .opacity))
+                    }
+                }
+                .onChange(of: show) { shouldShow in
+                    guard shouldShow else { return }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
+                        withAnimation(.spring()){
+                            show = false
+                        }
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
