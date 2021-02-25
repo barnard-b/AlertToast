@@ -382,26 +382,28 @@ public struct AlertToastModifier: ViewModifier{
                     return AnyView(EmptyView())
                 }
                 .overlay(ZStack{
+                    
+                    // If `isPresenting` is changed to true after the duration expires and the toast start fading out, then `onAppear` is not called when it fades back in causing the toast to become stuck. This can be solved starting with iOS 14 by using `onChange`.
+                    Group {
+                       if #available(iOS 14, *) {
+                           Color.clear
+                               .onChange(of: isPresenting) { presented in
+                                   if presented {
+                                       onAppearAction()
+                                   }
+                               }
+                       } else {
+                           Color.clear
+                               .onAppear(perform: onAppearAction)
+                       }
+                   }
+                   .accessibility(hidden: true)
+                    
                     if isPresenting{
                         
                         switch alert().displayMode{
                         case .alert:
                             alert()
-                                .onAppear {
-                                    
-                                    if alert().type == .loading{
-                                        duration = 0
-                                        tapToDismiss = false
-                                    }
-                                    
-                                    if duration > 0{
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
-                                            withAnimation(.spring()){
-                                                isPresenting = false
-                                            }
-                                        }
-                                    }
-                                }
                                 .onTapGesture {
                                     if tapToDismiss{
                                         withAnimation(.spring()){
@@ -429,21 +431,6 @@ public struct AlertToastModifier: ViewModifier{
                                         return AnyView(EmptyView())
                                     }
                                 )
-                                .onAppear {
-                                    
-                                    if alert().type == .loading{
-                                        duration = 0
-                                        tapToDismiss = false
-                                    }
-                                    
-                                    if duration > 0{
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
-                                            withAnimation(.spring()){
-                                                isPresenting = false
-                                            }
-                                        }
-                                    }
-                                }
                                 .onTapGesture {
                                     if tapToDismiss{
                                         withAnimation(.spring()){
@@ -465,6 +452,24 @@ public struct AlertToastModifier: ViewModifier{
             )
         
     }
+    
+    private func onAppearAction() {
+        
+        if alert().type == .loading{
+            duration = 0
+            tapToDismiss = false
+        }
+        
+        if duration > 0{
+            DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
+                withAnimation(.spring()){
+                    isPresenting = false
+                }
+            }
+        }
+        
+    }
+    
 }
 
 ///Fileprivate View Modifier for dynamic frame when alert type is `.regular` / `.loading`
